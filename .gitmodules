@@ -1,0 +1,3 @@
+[submodule "artemis/lib\\forge-std"]
+	path = artemis/lib\\forge-std
+	url = https://github.com/foundry-rs/forge-std
