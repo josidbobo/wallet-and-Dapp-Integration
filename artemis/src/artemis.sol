@@ -115,6 +115,7 @@ contract Contract {
                 break;
             }
         }
+         
         require(winningIndex < eventData.outcomes.length, "Winning outcome not found");
 
         uint256 userBet = eventData.bets[msg.sender][winningIndex];

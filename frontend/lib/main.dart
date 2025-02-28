@@ -20,6 +20,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Artemis',
       darkTheme: ThemeData(
         colorScheme: ColorScheme.dark(
@@ -29,6 +30,7 @@ class MyApp extends StatelessWidget {
       ),
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.white),
+        primarySwatch: Colors.blue,
       ),
       home: const MyHomePage(),
     );
