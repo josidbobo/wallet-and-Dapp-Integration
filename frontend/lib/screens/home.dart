@@ -1,7 +1,11 @@
 import 'dart:convert';
+import 'package:frontend/main.dart';
+import 'package:frontend/screens/home.dart';
 
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/firstpage.dart';
+import 'package:frontend/widgets/events.dart';
+
 import 'package:reown_appkit/reown_appkit.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -28,6 +32,11 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       isConnected = true;
     });
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => BetChainHomePage(appKitModal: _appKitModal!),
+      ),
+    );
   }
 
   void _onModalUpdate(ModalConnect? event) {
@@ -39,16 +48,43 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _onModalDisconnect(ModalDisconnect? event) {
-    setState(() {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => MyHomePage()),
-      );
-    });
+    print('Modal disconnected');
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => MyHomePage()),
+    );
+  }
+
+  @override
+  void dispose() {
+    // Unregister event handlers
+    _appKitModal!.appKit!.core.removeLogListener(_logListener);
+
+    _appKit!.core.relayClient.onRelayClientError.unsubscribe(_relayClientError);
+    _appKit!.core.relayClient.onRelayClientConnect.unsubscribe(_setState);
+    _appKit!.core.relayClient.onRelayClientDisconnect.unsubscribe(_setState);
+    _appKit!.core.relayClient.onRelayClientMessage.unsubscribe(_onRelayMessage);
+    //
+    _appKit!.onSessionPing.unsubscribe(_onSessionPing);
+    _appKit!.onSessionEvent.unsubscribe(_onSessionEvent);
+    //_appKit!.onSessionUpdate.unsubscribe(_onSessionUpdate);
+    _appKit!.onSessionConnect.subscribe(_onSessionConnect);
+    //
+    _appKitModal!.onModalConnect.unsubscribe(_onModalConnect);
+    _appKitModal!.onModalUpdate.unsubscribe(_onModalUpdate);
+    _appKitModal!.onModalNetworkChange.unsubscribe(_onModalNetworkChange);
+    _appKitModal!.onModalDisconnect.unsubscribe(_onModalDisconnect);
+    _appKitModal!.onModalError.unsubscribe(_onModalError);
+    //
+    super.dispose();
   }
 
   void _onModalError(ModalError? event) {
-    setState(() {});
+    // setState(() {});
+    // final snackBar = SnackBar(
+    //   content: Text(event!.message, style: TextStyle(color: Colors.red)),
+    // );
+    // ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
   Future<void> _registerEventHandlers() async {
@@ -57,6 +93,17 @@ class _MyHomePageState extends State<MyHomePage> {
       await Future.delayed(const Duration(milliseconds: 500));
       _registerEventHandlers();
       return;
+    }
+
+    final allChains = ReownAppKitModalNetworks.getAllSupportedNetworks();
+    for (final chain in allChains) {
+      // Loop through the events for that chain
+      final namespace = ReownAppKitModalNetworks.getNamespaceForChainId(
+        chain.chainId,
+      );
+      for (final event in getChainEvents(namespace)) {
+        _appKit!.registerEventHandler(chainId: chain.chainId, event: event);
+      }
     }
   }
 
@@ -91,29 +138,36 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  void _onSessionEvent(SessionEvent? args) {
+    debugPrint('[SampleDapp] _onSessionEvent $args');
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return EventWidget(
+          title: args!.topic,
+          content:
+              'Topic: ${args.topic}\nEvent Name: ${args.name}\nEvent Data: ${args.data}',
+        );
+      },
+    );
+  }
+
   void _logListener(String event) {
     debugPrint('[AppKit] $event');
   }
 
+  List<String> getChainEvents(String namespace) {
+    switch (namespace) {
+      case 'eip155':
+        return NetworkUtils.defaultNetworkEvents['eip155']!.toList();
+      case 'solana':
+        return NetworkUtils.defaultNetworkEvents['solana']!.toList();
+      default:
+        return [];
+    }
+  }
+
   Future<void> initializeService() async {
-    // appKitModal = ReownAppKitModal(
-    //   context: context,
-    //   projectId: dotenv.env['PROJECT_ID'],
-    //   metadata: const PairingMetadata(
-    //     name: 'Artemis',
-    //     description: 'Connecting Wallet to Dapp',
-    //     url: 'https://example.com/',
-    //     icons: [
-    //       'https://mms.businesswire.com/media/20240116762864/en/1997714/23/WalletConnect-Icon-Blueberry.jpg',
-    //     ],
-    //     redirect: Redirect(
-    //       // OPTIONAL
-    //       native: 'frontend://',
-    //       universal: 'https://reown.com/exampleapp',
-    //       linkMode: true,
-    //     ),
-    //   ),
-    // );
 
     _appKit = ReownAppKit(
       core: ReownCore(
@@ -123,7 +177,7 @@ class _MyHomePageState extends State<MyHomePage> {
       metadata: PairingMetadata(
         name: 'Artemis',
         description: 'Connecting Wallet to Dapp',
-        url: 'https://example.com/',
+        url: 'https://artemis.com.ng/',
         icons: [
           'https://mms.businesswire.com/media/20240116762864/en/1997714/23/WalletConnect-Icon-Blueberry.jpg',
         ],
@@ -173,71 +227,20 @@ class _MyHomePageState extends State<MyHomePage> {
     _appKitModal!.onModalDisconnect.subscribe(_onModalDisconnect);
     _appKitModal!.onModalError.subscribe(_onModalError);
 
-    // _pageDatas = [
-    //   PageData(
-    //     page: ConnectPage(appKitModal: _appKitModal!),
-    //     title: StringConstants.connectPageTitle,
-    //     icon: Icons.home,
-    //   ),
-    //   PageData(
-    //     page: PairingsPage(appKitModal: _appKitModal!),
-    //     title: StringConstants.pairingsPageTitle,
-    //     icon: Icons.vertical_align_center_rounded,
-    //   ),
-    //   PageData(
-    //     page: SettingsPage(
-    //       appKitModal: _appKitModal!,
-    //       linkMode: linkModeEnabled,
-    //       socials: socialsEnabled,
-    //       reinitialize: (bool value, String storageKey) async {
-    //         final result = await showDialog<bool>(
-    //           context: context,
-    //           builder: (BuildContext context) {
-    //             return AlertDialog(
-    //               content: Text('App will be closed to apply changes'),
-    //               actions: [
-    //                 TextButton(
-    //                   onPressed: () => Navigator.of(context).pop(false),
-    //                   child: Text('Cancel'),
-    //                 ),
-    //                 TextButton(
-    //                   onPressed: () => Navigator.of(context).pop(true),
-    //                   child: Text('Ok'),
-    //                 ),
-    //               ],
-    //             );
-    //           },
-    //         );
-    //         if (result == true) {
-    //           // appkit_sample_socials
-    //           await prefs.setBool(storageKey, value);
-    //           if (!kDebugMode) {
-    //             exit(0);
-    //           }
-    //         }
-    //       },
-    //     ),
-    //     title: StringConstants.settingsPageTitle,
-    //     icon: Icons.settings,
-    //   ),
-    // ];
-
     await _appKitModal!.init();
     await _registerEventHandlers();
 
     final allChains = ReownAppKitModalNetworks.getAllSupportedNetworks();
     // Loop through all the chain data
-    // for (final chain in allChains) {
-    //   // Loop through the events for that chain
-    //   final namespace = ReownAppKitModalNetworks.getNamespaceForChainId(
-    //     chain.chainId,
-    //   );
-    //   for (final event in getChainEvents(namespace)) {
-    //     _appKit!.registerEventHandler(
-    //       chainId: chain.chainId,
-    //       event: event,
-    //     );
-    //   }
+    for (final chain in allChains) {
+      // Loop through the events for that chain
+      final namespace = ReownAppKitModalNetworks.getNamespaceForChainId(
+        chain.chainId,
+      );
+      for (final event in getChainEvents(namespace)) {
+        _appKit!.registerEventHandler(chainId: chain.chainId, event: event);
+      }
+    }
   }
 
   @override
@@ -248,52 +251,90 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    //print(dotenv.env['PROJECT_ID']);
-
-    // AppKit Modal instance
-
-    // Register here the event callbacks on the service you'd like to use. See `Events` section.
-    if (isConnected) {
-      print('User connected');
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => BetChainHomePage(appKit: _appKitModal!),
-        ),
-      );
-      print('Connected modal to wallet');
+    if (mounted) {
+      print(_appKitModal!.onModalConnect);
     }
-    // appKitModal.onModalConnect.subscribe((ModalConnect? event) {
-
-    // });
 
     return Scaffold(
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 40),
-          child: Column(
-            spacing: 10,
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              // Text(
-              //   'Welcome to Artemis! One stop for all things Onchain betting',
-              //   textAlign: TextAlign.center,
-              //   style: Theme.of(
-              //     context,
-              //   ).textTheme.headlineMedium?.copyWith(color: Colors.blue),
-              // ),
-              const SizedBox(height: 1),
-              AppKitModalNetworkSelectButton(appKit: _appKitModal!),
-              AppKitModalConnectButton(
-                appKit: _appKitModal!,
-                // custom: ElevatedButton(
-                //   child: Text('Connect Wallet'),
-                //   onPressed: () {
+          padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 40),
+          child: Center(
+            child: Column(
+              spacing: 10,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                Image.network(
+                  "https://boostylabs.com/wp-content/uploads/2024/12/1_dH0FTGqFrIIhdzpmLnm-ug.jpg",
+                  isAntiAlias: true,
+                ),
+                Text(
+                  'Welcome to Artemis',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                Text(
+                  'Experience seamless betting with secure transactions and easy access to your funds',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: Colors.grey,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 1),
+                GestureDetector(
+                  onTap: () {
+                    if (_appKitModal!.isConnected) {
+                      navigatorKey.currentState!.pushReplacement(
+                        MaterialPageRoute(
+                          builder:
+                              (context) =>
+                                  BetChainHomePage(appKitModal: _appKitModal!),
+                        ),
+                      );
+                    }
+                  },
+                  child: SizedBox(
+                    width: 200,
+                    child: AppKitModalNetworkSelectButton(
+                      appKit: _appKitModal!,
+                      context: context,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 200,
+                  child: AppKitModalConnectButton(
+                    appKit: _appKitModal!,
+                    context: context,
+                  ),
+                ),
 
-                //   },
-                // ),
-              ),
-            ],
+                ElevatedButton(
+                  onPressed: () async {
+                    final decimalUnits = (decimals.first as BigInt); // decimals value from `decimals` contract function
+                    final transferValue = _formatValue(0.23, decimals: decimalUnits); // your format value function
+
+// Transfer USDT
+  // Transfer 0.01 amount of Token using Smart Contract's transfer function
+  final result = await _appKitModal!.requestWriteContract(
+    topic: _appKitModal!.session!.topic,
+    chainId: _appKitModal!.selectedChain!.chainId,
+    deployedContract: deployedContract,
+    functionName: 'transfer',
+    transaction: Transaction(
+      from: EthereumAddress.fromHex(_appKitModal!.session?.getAddress(namespace)), // sender address
+    ),
+    parameters: [
+       0.23 USDT
+    ],
+  );
+
+                  }
+                  child: Text('Set up Event')
+                )
+              ],
+            ),
           ),
         ),
       ),

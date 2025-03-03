@@ -1,0 +1,263 @@
+[
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "eventId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "outcomeIndex",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "BetPlaced",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "eventId",
+				"type": "uint256"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "winningOutcome",
+				"type": "string"
+			}
+		],
+		"name": "EventResolved",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "user",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "Payout",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_eventId",
+				"type": "uint256"
+			}
+		],
+		"name": "claimWinnings",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "_eventName",
+				"type": "string"
+			},
+			{
+				"internalType": "string[]",
+				"name": "_outcomes",
+				"type": "string[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "_odds",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_endTime",
+				"type": "uint256"
+			}
+		],
+		"name": "createEvent",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "eventCount",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "events",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "eventName",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "eventId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "endTime",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bool",
+				"name": "isResolved",
+				"type": "bool"
+			},
+			{
+				"internalType": "string",
+				"name": "winningOutcome",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getContractBalance",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_eventId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_outcomeIndex",
+				"type": "uint256"
+			}
+		],
+		"name": "placeBet",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_eventId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "_winningOutcome",
+				"type": "string"
+			}
+		],
+		"name": "resolveEvent",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "users",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "balance",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "amount",
+				"type": "uint256"
+			}
+		],
+		"name": "withdraw",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	}
+]
