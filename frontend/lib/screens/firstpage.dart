@@ -1,22 +1,120 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:frontend/main.dart';
+import 'package:frontend/screens/home.dart' show MyHomePage;
 import 'package:reown_appkit/reown_appkit.dart';
 
 class BetChainHomePage extends StatefulWidget {
-  final ReownAppKitModal appKit;
-  const BetChainHomePage({required this.appKit, key}) : super(key: key);
+  final ReownAppKitModal appKitModal;
+  const BetChainHomePage({super.key, required this.appKitModal,});
 
   @override
   State<BetChainHomePage> createState() => _BetChainHomePageState();
 }
 
 class _BetChainHomePageState extends State<BetChainHomePage> {
+  
+  void _setState(_) => setState(() {});
+
+  void _relayClientError(ErrorEvent? event) {
+    debugPrint('[SampleDapp] _relayClientError ${event?.error}');
+    _setState('');
+  }
+
+  void _onModalConnect(ModalConnect? event) async {
+    
+  }
+
+  void _onModalUpdate(ModalConnect? event) {
+    setState(() {});
+  }
+
+  void _onModalNetworkChange(ModalNetworkChange? event) {
+    setState(() {});
+  }
+
+  void _onModalDisconnect(ModalDisconnect? event) {
+    print('Modal disconnected');
+    navigatorKey.currentState!.pushReplacement(
+      MaterialPageRoute(builder: (context) => MyHomePage()),
+    );
+    
+  }
+
+
+  void _onModalError(ModalError? event) {
+    setState(() {});
+    final snackBar = SnackBar(
+      content: Text(event!.message, style: TextStyle(color: Colors.red)),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+  
+  
+  void _onSessionPing(SessionPing? args) {
+    debugPrint('[SampleDapp] _onSessionPing $args');
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Text("SessionPinged, Topic: ${args!.topic}");
+      },
+    );
+  }
+
+  void _onSessionConnect(SessionConnect? event) {
+    debugPrint(
+      '[SampleDapp] _onSessionConnect ${jsonEncode(event?.session.toJson())}',
+    );
+  }
+
+  void _logListener(String event) {
+    debugPrint('[AppKit] $event');
+  }
+
+  @override
+  void dispose() {
+    widget.appKitModal.onModalConnect.unsubscribe(_onModalConnect);
+    widget.appKitModal.onModalUpdate.unsubscribe(_onModalUpdate);
+    widget.appKitModal.onModalNetworkChange.unsubscribe(_onModalNetworkChange);
+    widget.appKitModal.onModalDisconnect.unsubscribe(_onModalDisconnect);
+    widget.appKitModal.onModalError.unsubscribe(_onModalError);
+    widget.appKitModal.onModalDisconnect.unsubscribe(
+      _onModalDisconnect,
+    );
+    widget.appKitModal.appKit!.onSessionConnect.unsubscribe(
+      _onSessionConnect,
+    );
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    widget.appKitModal.onModalConnect.subscribe(_onModalConnect);
+    widget.appKitModal.onModalUpdate.subscribe(_onModalUpdate);
+    widget.appKitModal.onModalNetworkChange.subscribe(_onModalNetworkChange);
+    widget.appKitModal.onModalDisconnect.subscribe(_onModalDisconnect);
+    widget.appKitModal.onModalError.subscribe(_onModalError);
+    //
+    widget.appKitModal.appKit!.onSessionConnect.subscribe(
+      _onSessionConnect,
+    );
+    widget.appKitModal.onModalDisconnect.subscribe(
+      _onModalDisconnect,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    //widget.appKitModal.onModalDisconnect.subscribe(_onModalDisconnect);
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
-          spacing: 10,
+          spacing: 8,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Padding(
@@ -90,12 +188,12 @@ class _BetChainHomePageState extends State<BetChainHomePage> {
               ),
             ),
             Row(
-              spacing: 4,
+              spacing: 2,
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: AppKitModalConnectButton(
-                    appKit: widget.appKit,
+                    appKit: widget.appKitModal,
                     // custom: ElevatedButton(
                     //   onPressed: () {
                     //     widget.appKit.disconnect();
@@ -106,25 +204,32 @@ class _BetChainHomePageState extends State<BetChainHomePage> {
                     //     shape: RoundedRectangleBorder(
                     //       borderRadius: BorderRadius.circular(12),
                     //     ),
-                      // ),
-                      // child: const Text(
-                      //   'Connect Wallet',
-                      //   style: TextStyle(
-                      //     fontSize: 16,
-                      //     fontWeight: FontWeight.bold,
-                      //     color: Colors.white,
-                      //   ),
-                      // ),
-                    ),
+                    // ),
+                    // child: const Text(
+                    //   'Connect Wallet',
+                    //   style: TextStyle(
+                    //     fontSize: 16,
+                    //     fontWeight: FontWeight.bold,
+                    //     color: Colors.white,
+                    //   ),
+                    // ),
                   ),
-                  Padding(padding: const EdgeInsets.all(4),
-                  child: Visibility(
-                  visible: widget.appKit.isConnected,
-                  child: AppKitModalAccountButton(appKitModal: widget.appKit),
-                ),)
+                ),
+                AppKitModalAccountButton(
+                        appKitModal: widget.appKitModal,
+                      ),
+                // Expanded(
+                //   child: Padding(
+                //     padding: const EdgeInsets.all(4),
+                //     child: Visibility(
+                //       visible: widget.appKitModal.isConnected,
+                //       child: 
+                //     ),
+                //   ),
+                // ),
               ],
             ),
-            
+
             const Spacer(),
             // Bottom navigation bar
             Container(

@@ -6,7 +6,7 @@ contract Contract {
     struct Event {
         string eventName; // e.g., "Champions League Final: Real Madrid vs. Liverpool"
         uint256 eventId;
-        string[] outcomes; // e.g., ["Real Madrid"]
+        string[] outcomes; // e.g., ["Real Madrid", "Liverpool", "Draw"]
         uint256[] odds; // Odds for each outcome (as fractions, e.g., 2 for 2:1)
         uint256 endTime; // Timestamp when betting closes
         bool isResolved; // Whether the event outcome has been determined
@@ -15,7 +15,7 @@ contract Contract {
         mapping(uint256 => uint256) totalBets; // Total bets per outcome
     }
 
-    // Structure to track user balances (in BET tokens or Ether)
+    // Structure to track user balances (in native token, e.g., Ether)
     struct User {
         uint256 balance;
     }
@@ -31,12 +31,8 @@ contract Contract {
     uint256 public eventCount; // Total number of events
     address public owner; // Contract owner for administrative tasks
 
-    // ERC-20 token interface (if using BET tokens)
-    IERC20 public betToken;
-
-    constructor(address _betToken) {
+    constructor() {
         owner = msg.sender;
-        betToken = IERC20(_betToken); // Address of the BET token contract
     }
 
     // Modifier to restrict access to owner
@@ -74,19 +70,16 @@ contract Contract {
         eventCount++;
     }
 
-    // Place a bet on an event outcome
-    function placeBet(uint256 _eventId, uint256 _outcomeIndex, uint256 _amount) public validEvent(_eventId) {
+    // Place a bet on an event outcome using native token (Ether)
+    function placeBet(uint256 _eventId, uint256 _outcomeIndex) public payable validEvent(_eventId) {
         require(_outcomeIndex < events[_eventId].outcomes.length, "Invalid outcome");
-        require(_amount > 0, "Bet amount must be greater than 0");
+        require(msg.value > 0, "Bet amount must be greater than 0");
 
-        // Transfer BET tokens from user to contract
-        require(betToken.transferFrom(msg.sender, address(this), _amount), "Token transfer failed");
+        // Record the bet (amount in wei, as msg.value is in wei)
+        events[_eventId].bets[msg.sender][_outcomeIndex] += msg.value;
+        events[_eventId].totalBets[_outcomeIndex] += msg.value;
 
-        // Record the bet
-        events[_eventId].bets[msg.sender][_outcomeIndex] += _amount;
-        events[_eventId].totalBets[_outcomeIndex] += _amount;
-
-        emit BetPlaced(msg.sender, _eventId, _outcomeIndex, _amount);
+        emit BetPlaced(msg.sender, _eventId, _outcomeIndex, msg.value);
     }
 
     // Resolve an event with the winning outcome
@@ -102,7 +95,7 @@ contract Contract {
         emit EventResolved(_eventId, _winningOutcome);
     }
 
-    // Claim winnings for a resolved event
+    // Claim winnings for a resolved event using native token (Ether)
     function claimWinnings(uint256 _eventId) public {
         require(_eventId < eventCount, "Event does not exist");
         Event storage eventData = events[_eventId];
@@ -115,7 +108,6 @@ contract Contract {
                 break;
             }
         }
-         
         require(winningIndex < eventData.outcomes.length, "Winning outcome not found");
 
         uint256 userBet = eventData.bets[msg.sender][winningIndex];
@@ -123,7 +115,10 @@ contract Contract {
 
         // Calculate payout: bet amount * odds
         uint256 payout = userBet * eventData.odds[winningIndex];
-        require(betToken.transfer(msg.sender, payout), "Payout failed");
+        
+        // Transfer native token (Ether) to the user
+        (bool sent, ) = msg.sender.call{value: payout}("");
+        require(sent, "Failed to send Ether");
 
         // Reset user's bet for this outcome
         eventData.bets[msg.sender][winningIndex] = 0;
@@ -131,12 +126,15 @@ contract Contract {
         emit Payout(msg.sender, payout);
     }
 
-    // Interface for ERC-20 token
-    interface IERC20 {
-        function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
-        function transfer(address recipient, uint256 amount) external returns (bool);
+    // Function to withdraw funds (for owner, if needed, e.g., for contract maintenance)
+    function withdraw(uint256 amount) public onlyOwner {
+        require(address(this).balance >= amount, "Insufficient contract balance");
+        (bool sent, ) = owner.call{value: amount}("");
+        require(sent, "Failed to withdraw Ether");
+    }
+
+    // Function to check contract balance (for debugging or transparency)
+    function getContractBalance() public view returns (uint256) {
+        return address(this).balance;
     }
 }
-
-
-
